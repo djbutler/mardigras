@@ -1,7 +1,7 @@
 import mardigras
 import sys
 import argparse
-
+from skimage import filter
 
 class MardigrasCmd(object):
 
@@ -30,6 +30,12 @@ flowviz     computes optical flow visualization for all frames
         print('called edges()')
         print('reading ' + args.inputvideofile)
         print('writing ' + args.outputvideofile)
+        def rgb_sobel(img):
+            return filter.sobel(img[:,:,0])**2 + \
+                   filter.sobel(img[:,:,1])**2 + \
+                   filter.sobel(img[:,:,2])**2
+        codec = 'mp4v' if args.outputvideofile[-4:] == '.mov' else 'h264'
+        mardigras.filter_video(args.inputvideofile, rgb_sobel, args.outputvideofile, codec=codec)
 
     def flowviz(self):
         '''Compute optical flow visualization for all frames'''
