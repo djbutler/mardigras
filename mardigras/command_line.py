@@ -2,6 +2,8 @@ import mardigras
 import sys
 import argparse
 from skimage import filter
+from skimage.color import rgb2gray
+import numpy as np
 
 class MardigrasCmd(object):
 
@@ -11,7 +13,7 @@ class MardigrasCmd(object):
                 usage='''mardigras <command> [<args>]
 
 edges       applies an edge filter to each frame of a video
-flowviz     computes optical flow visualization for all frames
+flowviz     computes optical flow visualization for all frames (NOT IMPLEMENTED)
 ''')
         parser.add_argument('command', help='Subcommand to run')
         args = parser.parse_args(sys.argv[1:2])
@@ -26,16 +28,24 @@ flowviz     computes optical flow visualization for all frames
         parser = argparse.ArgumentParser(prog='mardigras edges')
         parser.add_argument('inputvideofile', help='the video to apply the edge filter to')
         parser.add_argument('outputvideofile', help='the video to write to')
+        parser.add_argument('--method', help='the filtering method', default='sobel', choices=['sobel', 'canny'])
         args = parser.parse_args(sys.argv[2:])
-        print('called edges()')
-        print('reading ' + args.inputvideofile)
-        print('writing ' + args.outputvideofile)
-        def rgb_sobel(img):
-            return filter.sobel(img[:,:,0])**2 + \
-                   filter.sobel(img[:,:,1])**2 + \
-                   filter.sobel(img[:,:,2])**2
+        # define a simple adapter
+        def as_rgb(image_filter):
+            def rgb_filter(image, *args, **kwargs):
+                return image_filter(rgb2gray(image), *args, **kwargs)
+            return rgb_filter
+        # select filtering method
+        if args.method == 'sobel':
+            method = as_rgb(filter.sobel)
+        elif args.method == 'canny':
+            method = as_rgb(filter.canny)
+        else:
+            exit(1)
+        # select output video codec
         codec = 'mp4v' if args.outputvideofile[-4:] == '.mov' else 'h264'
-        mardigras.filter_video(args.inputvideofile, rgb_sobel, args.outputvideofile, codec=codec)
+        # filter the video
+        mardigras.filter_video(args.inputvideofile, method, args.outputvideofile, codec=codec)
 
     def flowviz(self):
         '''Compute optical flow visualization for all frames'''
